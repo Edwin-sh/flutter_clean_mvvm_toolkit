@@ -1,6 +1,6 @@
 name: flutter_clean_mvvm_toolkit
 description: A comprehensive Flutter toolkit for Clean Architecture with MVVM pattern. Provides ViewModels, Use Cases, Entities, Error Handling, and CRUD patterns for scalable Flutter applications.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/Edwin-sh/flutter_clean_mvvm_toolkit
 repository: https://github.com/Edwin-sh/flutter_clean_mvvm_toolkit
 issue_tracker: https://github.com/Edwin-sh/flutter_clean_mvvm_toolkit/issues
@@ -30,7 +30,6 @@ dev_dependencies:
 topics:
   - clean-architecture
   - mvvm
-  - architecture
   - crud
   - viewmodel
   - flutter

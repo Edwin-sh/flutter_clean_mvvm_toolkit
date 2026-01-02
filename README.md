@@ -24,7 +24,7 @@ A comprehensive Flutter toolkit for implementing **Clean Architecture** with **M
   - Either<ErrorItem, T> pattern throughout
 
 - **📝 Form Management**
-  - FormType enum (create/update)
+  - FormType enum (create/read/update)
   - DefaultFormViewModel with validation helpers
   - Type-safe form state management
 
@@ -38,7 +38,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_clean_mvvm_toolkit: ^0.1.0
+  flutter_clean_mvvm_toolkit: ^0.1.1
 ```
 
 Then run:
