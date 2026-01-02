@@ -8,6 +8,9 @@ enum FormType {
   /// Modo de creación de nueva entidad
   create,
 
+  /// Modo de solo lectura
+  read,
+  
   /// Modo de edición de entidad existente
   update,
 }
