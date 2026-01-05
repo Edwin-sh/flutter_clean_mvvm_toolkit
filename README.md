@@ -3,34 +3,36 @@
 [![pub package](https://img.shields.io/pub/v/flutter_clean_mvvm_toolkit.svg)](https://pub.dev/packages/flutter_clean_mvvm_toolkit)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A comprehensive Flutter toolkit for implementing **Clean Architecture** with **MVVM** pattern. Provides foundational components and patterns for building scalable, maintainable, and testable Flutter applications.
+A comprehensive Flutter toolkit for implementing **Clean Architecture** with **MVVM** pattern. Provides foundational components and best practices for building scalable, maintainable, and testable Flutter applications.
 
 ## ✨ Features
 
-- **🏛️ Clean Architecture Base Components**
-  - Entity base class with Equatable
-  - UseCase and StreamUseCase abstract classes
-  - Repository pattern support
+### 🏛️ Clean Architecture Components
+- **Entity**: Base class with Equatable for value comparison
+- **UseCase**: Abstract class for Future-based business logic
+- **StreamUseCase**: Abstract class for reactive business logic
+- **Model**: Base class for Data Transfer Objects (DTOs)
 
-- **�� MVVM ViewModels**
-  - CrudPageViewModel for list & delete operations
-  - CrudFormViewModel for create/update operations
-  - EntityFormViewModel with ChangeNotifier
-  - OperationResultMixin for success/failure handling
+### 📝 MVVM ViewModels
+- **EntityFormViewModel**: Manages form fields, validation, and data transformation
+- **CrudViewModel**: Handles CRUD operations with Use Cases
+- **DefaultFormViewModel**: Base form state management with FormKey
+- **OperationResultMixin**: Success/failure state handling
 
-- **🔥 Error Handling System**
-  - Structured ErrorItem with levels (systemInfo, warning, severe, danger)
-  - ErrorCode enum for categorization
-  - Either<ErrorItem, T> pattern throughout
+### 🔥 Error Handling System
+- **ErrorItem**: Structured error representation with severity levels
+- **ErrorCode**: Categorized error types (network, validation, unauthorized, etc.)
+- **ErrorLevelEnum**: Severity levels (systemInfo, warning, severe, danger)
 
-- **📝 Form Management**
-  - FormType enum (create/read/update)
-  - DefaultFormViewModel with validation helpers
-  - Type-safe form state management
+### ✅ Validation System
+- **FormValidators**: UI validators returning `String?` for Flutter widgets
+- **Validators**: Business logic validators returning `ErrorItem?` for use cases
+- Common validations: email, phone, URL, password strength, numeric, alphabetic, date ranges, and more
 
-- **🛠️ Utilities**
-  - DataUtils for safe JSON parsing
-  - Form validators
+### 🛠️ Utilities
+- **DataUtils**: Safe JSON parsing helpers
+- **FormType**: Enum for form modes (create, edit, read)
+- **DefaultEntityForm**: Base widget for entity forms
 
 ## 📦 Installation
 
@@ -38,7 +40,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_clean_mvvm_toolkit: ^0.1.1
+  flutter_clean_mvvm_toolkit: ^0.2.0
 ```
 
 Then run:
@@ -49,252 +51,390 @@ flutter pub get
 
 ## 🚀 Quick Start
 
-### 1. Create an Entity
+### 1. Define your Entity
 
 ```dart
 import 'package:flutter_clean_mvvm_toolkit/flutter_clean_mvvm_toolkit.dart';
 
-class User extends Entity {
+class Patient extends Entity {
   @override
   final String? id;
   final String name;
+  final int age;
   final String email;
 
-  User({this.id, required this.name, required this.email});
+  Patient({
+    this.id,
+    required this.name,
+    required this.age,
+    required this.email,
+  });
 
   @override
-  List<Object?> get props => [id, name, email];
+  List<Object?> get props => [id, name, age, email];
 
   @override
-  User copyWith({String? id, String? name, String? email}) {
-    return User(
+  Patient copyWith({String? id, String? name, int? age, String? email}) {
+    return Patient(
       id: id ?? this.id,
       name: name ?? this.name,
+      age: age ?? this.age,
       email: email ?? this.email,
     );
   }
 
   @override
-  String toString() => 'User(id: $id, name: $name, email: $email)';
+  String toString() => 'Patient(id: $id, name: $name, age: $age, email: $email)';
 }
 ```
 
-### 2. Create a Use Case
+### 2. Create your Use Cases
 
 ```dart
-class GetUsersUseCase extends StreamUseCase<List<User>, NoParams> {
-  final UserRepository repository;
+class CreatePatientUseCase extends UseCase<Patient, Patient> {
+  final PatientRepository repository;
 
-  GetUsersUseCase(this.repository);
-
-  @override
-  Stream<Either<ErrorItem, List<User>>> call(NoParams params) {
-    return repository.watchUsers();
-  }
-}
-```
-
-### 3. Create a ViewModel for Listing
-
-```dart
-class UserViewModel extends CrudPageViewModel<User> with OperationResultMixin {
-  final GetUsersUseCase _getUsersUseCase;
-  final DeleteUserUseCase _deleteUserUseCase;
-
-  UserViewModel(this._getUsersUseCase, this._deleteUserUseCase) {
-    getEntities();
-  }
-
-  List<User> _users = [];
-  List<User> get users => _users;
-
-  bool _loading = false;
-  bool get loading => _loading;
+  CreatePatientUseCase(this.repository);
 
   @override
-  Future<void> getEntities() async {
-    _loading = true;
-    notifyListeners();
+  Future<Either<ErrorItem, Patient>> call(Patient params) async {
+    // Validaciones de negocio
+    if (params.age < 18) {
+      return Left(ErrorItem.validation(
+        message: 'El paciente debe ser mayor de edad',
+      ));
+    }
     
-    _getUsersUseCase(NoParams()).listen((either) {
-      either.fold(
-        (error) {
-          setOperationFailure(OperationFailure(error));
-          _loading = false;
-          notifyListeners();
-        },
-        (users) {
-          _users = users;
-          _loading = false;
-          notifyListeners();
-        },
-      );
-    });
+    return await repository.create(params);
   }
+}
+
+class GetPatientsUseCase extends UseCase<List<Patient>, NoParams> {
+  final PatientRepository repository;
+
+  GetPatientsUseCase(this.repository);
 
   @override
-  Future<void> delete(String? id) async {
-    if (id == null) return;
-    
-    final result = await _deleteUserUseCase(id);
-    result.fold(
-      (error) => setOperationFailure(OperationFailure(error)),
-      (_) => setOperationSuccess(OperationSuccess('Usuario eliminado')),
-    );
+  Future<Either<ErrorItem, List<Patient>>> call(NoParams params) async {
+    return await repository.getAll();
   }
 }
 ```
 
-### 4. Create a Form ViewModel
+### 3. Create Form ViewModel
 
 ```dart
-class UserFormViewModel extends EntityFormViewModel<User> 
-    with OperationResultMixin 
-    implements CrudFormViewModel<User> {
-  final AddUserUseCase _addUserUseCase;
-  final UpdateUserUseCase _updateUserUseCase;
-
-  UserFormViewModel(this._addUserUseCase, this._updateUserUseCase) {
-    createFormState();
-  }
-
+class PatientFormViewModel extends EntityFormViewModel<Patient> {
   final nameController = TextEditingController();
+  final ageController = TextEditingController();
   final emailController = TextEditingController();
 
-  @override
-  Future<void> addEntity() async {
-    final user = mapDataToEntity();
-    final result = await _addUserUseCase(user);
-    
-    result.fold(
-      (error) => setOperationFailure(OperationFailure(error)),
-      (_) => setOperationSuccess(OperationSuccess('Usuario creado')),
-    );
+  PatientFormViewModel() {
+    createFormState(); // Inicializa el FormKey
   }
 
   @override
-  Future<void> updateEntity() async {
-    final user = mapDataToEntity();
-    final result = await _updateUserUseCase(user);
-    
-    result.fold(
-      (error) => setOperationFailure(OperationFailure(error)),
-      (_) => setOperationSuccess(OperationSuccess('Usuario actualizado')),
-    );
+  void loadDataFromEntity(Patient entity) {
+    nameController.text = entity.name;
+    ageController.text = entity.age.toString();
+    emailController.text = entity.email;
+    formType = FormType.edit;
   }
 
   @override
-  User mapDataToEntity() {
-    return User(
+  Patient buildEntityFromForm() {
+    return Patient(
       name: nameController.text,
+      age: int.parse(ageController.text),
       email: emailController.text,
     );
   }
 
   @override
-  void loadDataFromEntity(User entity) {
-    nameController.text = entity.name;
-    emailController.text = entity.email;
-  }
-
-  @override
-  Future<void> getEntity(String? id) async {
-    // Implementar lógica de obtención
-  }
-
-  @override
   void clearFormData() {
     nameController.clear();
+    ageController.clear();
     emailController.clear();
+    formType = FormType.create;
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    ageController.dispose();
+    emailController.dispose();
+    super.dispose();
   }
 }
 ```
 
-## 🏗️ Architecture
-
-This toolkit follows Clean Architecture principles with three main layers:
-
-```
-┌─────────────────────────────────────┐
-│       Presentation Layer            │
-│   (ViewModels, Widgets, UI)         │
-└─────────────┬───────────────────────┘
-              │
-┌─────────────▼───────────────────────┐
-│         Domain Layer                │
-│  (Entities, UseCases, Repositories) │
-└─────────────┬───────────────────────┘
-              │
-┌─────────────▼───────────────────────┐
-│          Data Layer                 │
-│  (Models, DataSources, Repos Impl)  │
-└─────────────────────────────────────┘
-```
-
-## 📚 Core Components
-
-### Entity
-Base class for all domain entities with identity and equality.
-
-### UseCase
-Abstract class for business logic that returns `Future<Either<ErrorItem, T>>`.
-
-### StreamUseCase
-Abstract class for reactive business logic that returns `Stream<Either<ErrorItem, T>>`.
-
-### ErrorItem
-Structured error representation with:
-- title, message, details
-- ErrorCode for categorization
-- ErrorLevelEnum for severity (systemInfo, warning, severe, danger)
-
-### ViewModels
-- **CrudPageViewModel**: For list and delete operations
-- **CrudFormViewModel**: Interface for create/update operations
-- **EntityFormViewModel**: Base implementation with ChangeNotifier
-
-### OperationResultMixin
-Provides success/failure state management for ViewModels.
-
-## 🧪 Testing
-
-The toolkit is designed with testability in mind. Use `mocktail` for mocking:
+### 4. Create CRUD ViewModel
 
 ```dart
-class MockUserRepository extends Mock implements UserRepository {}
+class PatientCrudViewModel extends CrudViewModel<Patient> {
+  final CreatePatientUseCase _createUseCase;
+  final GetPatientsUseCase _getPatientsUseCase;
+  final UpdatePatientUseCase _updateUseCase;
+  final DeletePatientUseCase _deleteUseCase;
 
-void main() {
-  late GetUsersUseCase useCase;
-  late MockUserRepository mockRepository;
+  List<Patient> _patients = [];
+  List<Patient> get patients => _patients;
 
-  setUp(() {
-    mockRepository = MockUserRepository();
-    useCase = GetUsersUseCase(mockRepository);
-  });
+  PatientCrudViewModel(
+    this._createUseCase,
+    this._getPatientsUseCase,
+    this._updateUseCase,
+    this._deleteUseCase,
+  ) {
+    getEntities();
+  }
 
-  test('should return list of users from repository', () async {
-    // Arrange
-    final users = [User(id: '1', name: 'Test', email: 'test@test.com')];
-    when(() => mockRepository.watchUsers()).thenAnswer(
-      (_) => Stream.value(Right(users)),
+  @override
+  Future<bool> addEntity(Patient entity) async {
+    final result = await _createUseCase.call(entity);
+    return result.fold(
+      (error) {
+        // Manejar error
+        return false;
+      },
+      (patient) {
+        getEntities();
+        return true;
+      },
     );
+  }
 
-    // Act
-    final result = useCase(NoParams());
+  @override
+  Future<Patient?> getEntity(String id) async {
+    final result = await _getPatientUseCase.call(id);
+    return result.fold((error) => null, (patient) => patient);
+  }
 
-    // Assert
-    expect(result, emits(Right(users)));
-  });
+  @override
+  Future<bool> updateEntity(Patient entity) async {
+    final result = await _updateUseCase.call(entity);
+    return result.fold(
+      (error) => false,
+      (patient) {
+        getEntities();
+        return true;
+      },
+    );
+  }
+
+  @override
+  Future<bool> deleteEntity(String id) async {
+    final result = await _deleteUseCase.call(id);
+    return result.fold(
+      (error) => false,
+      (success) {
+        getEntities();
+        return true;
+      },
+    );
+  }
+
+  @override
+  Future<void> getEntities() async {
+    final result = await _getPatientsUseCase.call(NoParams());
+    result.fold(
+      (error) {
+        // Manejar error
+      },
+      (patients) {
+        _patients = patients;
+        notifyListeners();
+      },
+    );
+  }
 }
 ```
+
+### 5. Build your UI
+
+```dart
+class PatientFormScreen extends StatelessWidget {
+  final PatientFormViewModel formViewModel;
+  final PatientCrudViewModel crudViewModel;
+
+  const PatientFormScreen({
+    required this.formViewModel,
+    required this.crudViewModel,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Nuevo Paciente')),
+      body: Form(
+        key: formViewModel.formState,
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              TextFormField(
+                controller: formViewModel.nameController,
+                decoration: InputDecoration(labelText: 'Nombre'),
+                validator: (value) => FormValidators.validateNoEmpty(value, 'el nombre'),
+              ),
+              TextFormField(
+                controller: formViewModel.ageController,
+                decoration: InputDecoration(labelText: 'Edad'),
+                keyboardType: TextInputType.number,
+                validator: (value) => FormValidators.validateIsNumeric(value, 'la edad'),
+              ),
+              TextFormField(
+                controller: formViewModel.emailController,
+                decoration: InputDecoration(labelText: 'Email'),
+                validator: (value) => FormValidators.validateEmail(value),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  // El FormViewModel valida automáticamente
+                  final patient = formViewModel.mapDataToEntity();
+                  
+                  if (patient != null) {
+                    final success = formViewModel.formType == FormType.create
+                        ? await crudViewModel.addEntity(patient)
+                        : await crudViewModel.updateEntity(patient);
+                    
+                    if (success) {
+                      formViewModel.clearFormData();
+                      Navigator.pop(context);
+                    }
+                  }
+                },
+                child: Text(formViewModel.formType == FormType.create ? 'Crear' : 'Actualizar'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+```
+
+## 📚 Core Concepts
+
+### ViewModels Architecture
+
+This toolkit uses a **decoupled ViewModel architecture**:
+
+#### EntityFormViewModel
+- **Responsibility**: Manages form fields, validation, and data transformation
+- **Does NOT**: Execute CRUD operations or communicate with Use Cases
+- **Methods**:
+  - `loadDataFromEntity(entity)`: Populates form fields from entity
+  - `mapDataToEntity()`: Creates entity from form (validates first, returns `null` if invalid)
+  - `buildEntityFromForm()`: Abstract method to implement entity construction
+  - `clearFormData()`: Clears all form fields
+
+#### CrudViewModel
+- **Responsibility**: Executes CRUD operations via Use Cases
+- **Does NOT**: Know about form fields or controllers
+- **Methods**:
+  - `addEntity(entity)`: Create operation → `Future<bool>`
+  - `getEntity(id)`: Read operation → `Future<T?>`
+  - `updateEntity(entity)`: Update operation → `Future<bool>`
+  - `deleteEntity(id)`: Delete operation → `Future<bool>`
+  - `getEntities()`: List operation → `Future<void>`
+
+#### Widget Coordination
+The **Widget** acts as the mediator between both ViewModels:
+
+```dart
+// Widget coordinates the communication
+final patient = formViewModel.mapDataToEntity(); // Validates & builds entity
+if (patient != null) {
+  final success = await crudViewModel.addEntity(patient); // Executes operation
+  if (success) formViewModel.clearFormData(); // Cleans up
+}
+```
+
+### Validation System
+
+#### FormValidators (UI Layer)
+Returns `String?` for direct use in Flutter validators:
+
+```dart
+TextFormField(
+  validator: (value) => FormValidators.validateEmail(value),
+)
+```
+
+Available validators:
+- `validateNoEmpty(value, fieldName)`
+- `validateEmail(value)`
+- `validateMinLength(value, minLength, fieldName)`
+- `validateIsNumeric(value, fieldName)`
+- `validateMatch(value, other, message)`
+- `validatePhone(value, fieldName)`
+- `validateUrl(value, fieldName)`
+- `validatePasswordStrength(value, fieldName)`
+
+#### Validators (Business Logic Layer)
+Returns `ErrorItem?` for use in Use Cases:
+
+```dart
+final error = Validators.validateEmail(email);
+if (error != null) {
+  return Left(error); // Return Either with error
+}
+```
+
+Available validators:
+- All from FormValidators, plus:
+- `validateNotNull(value, fieldName)`
+- `validateModelNotNull(model)`
+- `validateMaxLength(value, maxLength, fieldName)`
+- `validateRange(value, min, max, fieldName)`
+- `validateStringLengthRange(value, minLength, maxLength, fieldName)`
+- `validateAlphabetic(value, fieldName)`
+- `validateNotFutureDate(date, fieldName)`
+
+### Error Handling
+
+```dart
+class GetPatientUseCase extends UseCase<Patient, String> {
+  @override
+  Future<Either<ErrorItem, Patient>> call(String id) async {
+    try {
+      final patient = await repository.getById(id);
+      return Right(patient);
+    } catch (e) {
+      return Left(ErrorItem.network(
+        message: 'No se pudo obtener el paciente',
+      ));
+    }
+  }
+}
+```
+
+Error types:
+- `ErrorItem.validation()`: Form/data validation errors
+- `ErrorItem.network()`: Network connectivity errors
+- `ErrorItem.unauthorized()`: Authentication errors
+- `ErrorItem.unknown()`: Generic errors
+
+## 🎯 Best Practices
+
+1. **Separate Concerns**: Keep FormViewModel for UI and CrudViewModel for business logic
+2. **Validate Early**: Use FormValidators in UI, Validators in Use Cases
+3. **Use Either**: Always return `Either<ErrorItem, T>` from Use Cases
+4. **Coordinate in Widget**: Let the Widget mediate between ViewModels
+5. **Dispose Properly**: Always dispose controllers in FormViewModel
+6. **Test Independently**: Each ViewModel should be testable without the other
 
 ## 📖 Documentation
 
-For more detailed documentation, visit [our wiki](https://github.com/Edwin-sh/flutter_clean_mvvm_toolkit/wiki).
+For complete API documentation, visit [pub.dev documentation](https://pub.dev/documentation/flutter_clean_mvvm_toolkit/latest/).
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
@@ -302,8 +442,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👨‍💻 Author
 
-Created and maintained by [Edwin-sh](https://github.com/Edwin-sh).
+**Edwin Martinez**
+- GitHub: [@Edwin-sh](https://github.com/Edwin-sh)
 
 ## 🙏 Acknowledgments
 
-Inspired by Clean Architecture principles and best practices from the Flutter community.
+Inspired by Clean Architecture principles and MVVM pattern best practices in Flutter development.
