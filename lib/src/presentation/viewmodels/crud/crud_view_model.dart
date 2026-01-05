@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_clean_mvvm_toolkit/src/core/domain/entities/entity.dart';
+import 'package:flutter_clean_mvvm_toolkit/src/presentation/models/operation_result.dart';
 
 /// ViewModel para operaciones CRUD sobre entidades.
 ///
@@ -28,46 +29,43 @@ import 'package:flutter_clean_mvvm_toolkit/src/core/domain/entities/entity.dart'
 ///   List<Patient> _patients = [];
 ///   List<Patient> get patients => _patients;
 ///
-///   Future<bool> addEntity(Patient patient) async {
+///   Future<OperationResult<Patient>> addEntity(Patient patient) async {
 ///     final result = await _createUseCase.call(patient);
 ///     return result.fold(
-///       (error) {
-///         // Manejar error
-///         return false;
-///       },
+///       (error) => OperationResult.failure(error),
 ///       (success) {
 ///         getEntities(); // Recargar lista
-///         return true;
+///         return OperationResult.success(success);
 ///       },
 ///     );
 ///   }
 ///
-///   Future<Patient?> getEntity(String id) async {
+///   Future<OperationResult<Patient>> getEntity(String id) async {
 ///     final result = await _getUseCase.call(id);
 ///     return result.fold(
-///       (error) => null,
-///       (patient) => patient,
+///       (error) => OperationResult.failure(error),
+///       (patient) => OperationResult.success(patient),
 ///     );
 ///   }
 ///
-///   Future<bool> updateEntity(Patient patient) async {
+///   Future<OperationResult<Patient>> updateEntity(Patient patient) async {
 ///     final result = await _updateUseCase.call(patient);
 ///     return result.fold(
-///       (error) => false,
+///       (error) => OperationResult.failure(error),
 ///       (success) {
 ///         getEntities();
-///         return true;
+///         return OperationResult.success(success);
 ///       },
 ///     );
 ///   }
 ///
-///   Future<bool> deleteEntity(String id) async {
+///   Future<OperationResult<void>> deleteEntity(String id) async {
 ///     final result = await _deleteUseCase.call(id);
 ///     return result.fold(
-///       (error) => false,
+///       (error) => OperationResult.failure(error),
 ///       (success) {
 ///         getEntities();
-///         return true;
+///         return OperationResult.success(null);
 ///       },
 ///     );
 ///   }
@@ -89,8 +87,8 @@ import 'package:flutter_clean_mvvm_toolkit/src/core/domain/entities/entity.dart'
 ///   onPressed: () async {
 ///     final patient = formViewModel.mapDataToEntity();
 ///     if (patient != null) {
-///       final success = await crudViewModel.addEntity(patient);
-///       if (success) {
+///       final result = await crudViewModel.addEntity(patient);
+///       if (result.isSuccess) {
 ///         formViewModel.clearFormData();
 ///       }
 ///     }
@@ -106,26 +104,26 @@ abstract class CrudViewModel<T extends Entity> with ChangeNotifier {
   /// Crea una nueva entidad en el dominio.
   ///
   /// [entity]: La entidad a crear
-  /// Returns: true si la operación fue exitosa, false en caso contrario
-  Future<bool> addEntity(T entity);
+  /// Returns: [OperationResult] con la entidad creada o el error
+  Future<OperationResult<T>> addEntity(T entity);
 
   /// Lee una entidad del dominio por su ID.
   ///
   /// [id]: Identificador de la entidad a leer
-  /// Returns: La entidad encontrada, o null si no existe o hay error
-  Future<T?> getEntity(String id);
+  /// Returns: [OperationResult] con la entidad encontrada o el error
+  Future<OperationResult<T>> getEntity(String id);
 
   /// Actualiza una entidad existente en el dominio.
   ///
   /// [entity]: La entidad con los datos actualizados
-  /// Returns: true si la operación fue exitosa, false en caso contrario
-  Future<bool> updateEntity(T entity);
+  /// Returns: [OperationResult] con la entidad actualizada o el error
+  Future<OperationResult<T>> updateEntity(T entity);
 
   /// Elimina una entidad del dominio por su ID.
   ///
   /// [id]: Identificador de la entidad a eliminar
-  /// Returns: true si la operación fue exitosa, false en caso contrario
-  Future<bool> deleteEntity(String id);
+  /// Returns: [OperationResult] indicando éxito o el error
+  Future<OperationResult<void>> deleteEntity(String id);
 
   /// Obtiene la lista de entidades del dominio.
   ///

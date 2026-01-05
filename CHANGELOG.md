@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-01-05
+
+### 🔄 Changed
+- **CrudViewModel**: Refactored CRUD methods to return `Future<OperationResult<T>>` instead of `bool` or `T?`. This provides more context about the operation result, including errors and messages.
+- **OperationResult**: Converted to a generic class `OperationResult<T>` to support typed data return and better error encapsulation.
+- **OperationResultMixin**: Added `handleResult<T>(result)` method to automatically process `OperationResult` and notify listeners.
+
 ## [0.2.0] - 2026-01-05
 
 ### 🚨 Breaking Changes
