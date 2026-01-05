@@ -15,7 +15,7 @@
 /// ```dart
 /// import 'package:flutter_clean_mvvm_toolkit/flutter_clean_mvvm_toolkit.dart';
 /// ```
-library flutter_clean_mvvm_toolkit;
+library;
 
 // ==================== CORE - DOMAIN ====================
 
