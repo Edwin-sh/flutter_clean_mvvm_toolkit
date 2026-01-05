@@ -69,8 +69,8 @@ import 'package:flutter_clean_mvvm_toolkit/src/presentation/viewmodels/crud/enti
 ///             onPressed: () async {
 ///               final patient = formViewModel.mapDataToEntity();
 ///               if (patient != null) {
-///                 final success = await crudViewModel.addEntity(patient);
-///                 if (success) formViewModel.clearFormData();
+///                 final result = await crudViewModel.addEntity(patient);
+///                 if (result.isSuccess) formViewModel.clearFormData();
 ///               }
 ///             },
 ///             child: Text('Guardar'),

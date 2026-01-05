@@ -190,46 +190,46 @@ class PatientCrudViewModel extends CrudViewModel<Patient> {
   }
 
   @override
-  Future<bool> addEntity(Patient entity) async {
+  Future<OperationResult<Patient>> addEntity(Patient entity) async {
     final result = await _createUseCase.call(entity);
     return result.fold(
-      (error) {
-        // Manejar error
-        return false;
-      },
+      (error) => OperationResult.failure(error),
       (patient) {
         getEntities();
-        return true;
+        return OperationResult.success(patient);
       },
     );
   }
 
   @override
-  Future<Patient?> getEntity(String id) async {
+  Future<OperationResult<Patient>> getEntity(String id) async {
     final result = await _getPatientUseCase.call(id);
-    return result.fold((error) => null, (patient) => patient);
+    return result.fold(
+      (error) => OperationResult.failure(error),
+      (patient) => OperationResult.success(patient),
+    );
   }
 
   @override
-  Future<bool> updateEntity(Patient entity) async {
+  Future<OperationResult<Patient>> updateEntity(Patient entity) async {
     final result = await _updateUseCase.call(entity);
     return result.fold(
-      (error) => false,
+      (error) => OperationResult.failure(error),
       (patient) {
         getEntities();
-        return true;
+        return OperationResult.success(patient);
       },
     );
   }
 
   @override
-  Future<bool> deleteEntity(String id) async {
+  Future<OperationResult<void>> deleteEntity(String id) async {
     final result = await _deleteUseCase.call(id);
     return result.fold(
-      (error) => false,
+      (error) => OperationResult.failure(error),
       (success) {
         getEntities();
-        return true;
+        return OperationResult.success(null);
       },
     );
   }
@@ -296,11 +296,11 @@ class PatientFormScreen extends StatelessWidget {
                   final patient = formViewModel.mapDataToEntity();
                   
                   if (patient != null) {
-                    final success = formViewModel.formType == FormType.create
+                    final result = formViewModel.formType == FormType.create
                         ? await crudViewModel.addEntity(patient)
                         : await crudViewModel.updateEntity(patient);
                     
-                    if (success) {
+                    if (result.isSuccess) {
                       formViewModel.clearFormData();
                       Navigator.pop(context);
                     }
@@ -336,10 +336,10 @@ This toolkit uses a **decoupled ViewModel architecture**:
 - **Responsibility**: Executes CRUD operations via Use Cases
 - **Does NOT**: Know about form fields or controllers
 - **Methods**:
-  - `addEntity(entity)`: Create operation → `Future<bool>`
-  - `getEntity(id)`: Read operation → `Future<T?>`
-  - `updateEntity(entity)`: Update operation → `Future<bool>`
-  - `deleteEntity(id)`: Delete operation → `Future<bool>`
+  - `addEntity(entity)`: Create operation → `Future<OperationResult<T>>`
+  - `getEntity(id)`: Read operation → `Future<OperationResult<T>>`
+  - `updateEntity(entity)`: Update operation → `Future<OperationResult<T>>`
+  - `deleteEntity(id)`: Delete operation → `Future<OperationResult<void>>`
   - `getEntities()`: List operation → `Future<void>`
 
 #### Widget Coordination
@@ -349,8 +349,8 @@ The **Widget** acts as the mediator between both ViewModels:
 // Widget coordinates the communication
 final patient = formViewModel.mapDataToEntity(); // Validates & builds entity
 if (patient != null) {
-  final success = await crudViewModel.addEntity(patient); // Executes operation
-  if (success) formViewModel.clearFormData(); // Cleans up
+  final result = await crudViewModel.addEntity(patient); // Executes operation
+  if (result.isSuccess) formViewModel.clearFormData(); // Cleans up
 }
 ```
 
